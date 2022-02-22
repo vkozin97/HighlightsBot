@@ -17,33 +17,30 @@ CREATE TABLE IF NOT EXISTS original_videos (
 
 CREATE TABLE IF NOT EXISTS timecodes (
     timecode_id INTEGER PRIMARY KEY,
+    author_id INTEGER NOT NULL,
     original_video_id INTEGER NOT NULL,
     timecode TEXT NOT NULL,  -- FORMAT '11:43'
+    comment TEXT,
+    FOREIGN KEY (author_id)
+        REFERENCES users (user_id)
+            ON UPDATE CASCADE
+            ON DELETE CASCADE,
     FOREIGN KEY (original_video_id)
         REFERENCES original_videos (video_id)
             ON UPDATE CASCADE
             ON DELETE CASCADE
 );
 
-CREATE TABLE IF NOT EXISTS timecode_author_heros (
-    timecode_id INTEGER PRIMARY KEY,
-    author_id INTEGER NOT NULL,
+CREATE TABLE IF NOT EXISTS timecode_heros (
+    relation_id INTEGER PRIMARY KEY,
+    timecode_id INTEGER NOT NULL,
     hero_id INTEGER,
-    anti_hero_id INTEGER,
-    comment TEXT,
+    is_anti_hero BOOL NOT NULL,
     FOREIGN KEY (timecode_id)
         REFERENCES timecodes (timecode_id)
             ON UPDATE CASCADE
             ON DELETE CASCADE,
-    FOREIGN KEY (author_id)
-        REFERENCES users (user_id)
-            ON UPDATE CASCADE
-            ON DELETE CASCADE,
     FOREIGN KEY (hero_id)
-        REFERENCES users (user_id)
-            ON UPDATE CASCADE
-            ON DELETE CASCADE,
-    FOREIGN KEY (anti_hero_id)
         REFERENCES users (user_id)
             ON UPDATE CASCADE
             ON DELETE CASCADE
