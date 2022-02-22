@@ -37,7 +37,7 @@ def scan_path(path_after_root, publish_new=True, recursive=True, verbose=False):
 
     '''
     
-    path_after_root = '/' + path_after_root.lstrip('/')
+    path_after_root = path_after_root.lstrip('/')
     
     if verbose:
         print('Entering the folder', path_after_root)
@@ -45,7 +45,7 @@ def scan_path(path_after_root, publish_new=True, recursive=True, verbose=False):
     success = False
     while not success:
         try:
-            resources = list(y.listdir(root + path_after_root))
+            resources = list(y.listdir(root + '/' + path_after_root))
             success = True
         except yadisk.exceptions.YaDiskError() as e:
             print('YDExeption occured for y.list_dir:\n' + e + '\n')
@@ -55,7 +55,7 @@ def scan_path(path_after_root, publish_new=True, recursive=True, verbose=False):
     folders = []
     files = []
     for r in resources:
-        cur_dict = {'name': r.name, 'path': path_after_root + '/' + r.name}
+        cur_dict = {'name': r.name, 'path': (path_after_root + '/' + r.name).lstrip('/')}
         if r.type == 'dir' and recursive:
             cur_dict['dir_content'] = scan_path(cur_dict['path'],
                                                 publish_new=publish_new,

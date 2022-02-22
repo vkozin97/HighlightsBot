@@ -4,6 +4,7 @@ import os.path as pth
 from enum import Enum
 
 database_path = pth.join('Data', 'databaseb.db')
+test_database_path = pth.join('Data', 'database_test.db')
 initiate_script_path = pth.join('Data', 'init.sql')
 
 
@@ -16,10 +17,29 @@ class UserStates(Enum):
     labeling_antiheroes = 6
     labeling_comment = 7
     
+    
+class Player(object):
+    user_id = None
+    username = None,
+    nickname = None,
+    current_state = None,
+    current_video = None,
+    current_timecode = None,
+    current_heroes = None,
+    current_antiheroes = None,
+    current_comment = None
+    
 
 class DBKeeper(object):
 
-    def __init__(self, db_file = database_path, init_script_file = initiate_script_path, needInitiate=False):
+    def __init__(self, test_mode=True, db_file = None, init_script_file = initiate_script_path, needInitiate=False):
+        
+        if db_file is None:
+            if test_mode:
+                db_file = test_database_path
+            else:
+                db_file = database_path
+                
         self.db_file = db_file
         self.init_script_file = init_script_file
         needInitiate |= not pth.exists(db_file)
@@ -94,14 +114,26 @@ class DBKeeper(object):
             if len(script) > 0:
                 self._execute(script)
                 
+    def _row_2_player(self, row):
+        if row is None:
+            return None
+        
+        p = Player()
+        p.user_id, p.username, p.nickname,\
+            p.current_state, p.current_video, p.current_timecode,\
+            p.current_heroes, p.current_antiheroes, p.current_comment = row
+        return p
+                
     def get_players(self):
-        return self._execute("SELECT * FROM users")
+        return [self._row_2_player(row) for row in self._execute("SELECT * FROM users")]
                 
     def get_players_with_nickname(self, nickname_or_mask):
-        return self._execute(f"SELECT * FROM users WHERE nickname LIKE '{nickname_or_mask}'")
+        return [self._row_2_player(row) for row in \
+                self._execute(f"SELECT * FROM users WHERE nickname LIKE '{nickname_or_mask}'")]
     
     def get_players_with_user_id(self, user_id_or_mask):
-        return self._execute(f"SELECT * FROM users WHERE user_id LIKE '{user_id_or_mask}'")
+        return [self._row_2_player(row) for row in \
+                self._execute(f"SELECT * FROM users WHERE user_id LIKE '{user_id_or_mask}'")]
     
     def has_player_with_nickname(self, nickname):
         return len(self.get_players_with_nickname(nickname)) > 0
@@ -110,16 +142,30 @@ class DBKeeper(object):
         return len(self.get_players_with_user_id(user_id)) > 0
     
     def add_player(self, user_id, username, nickname):
-        self._execute(f"INSERT INTO users (user_id, username, nickname, current_state) VALUES ({user_id}, '{username}', '{nickname}', 1)")
+        if username is None:
+            self._execute(f"INSERT INTO users (user_id, username, nickname, current_state, current_video) VALUES ({user_id}, NULL, '{nickname}', 1, '')")
+        else:
+            self._execute(f"INSERT INTO users (user_id, username, nickname, current_state, current_video) VALUES ({user_id}, '{username}', '{nickname}', 1, '')")
         
     def change_player_nickname(self, user_id, username, new_nickname):
-        self._execute(f"UPDATE users SET nickname='{new_nickname}', username='{username}' WHERE user_id = {user_id}")
+        if username is None:
+            self._execute(f"UPDATE users SET nickname='{new_nickname}', username=NULL WHERE user_id = {user_id}")
+        else:
+            self._execute(f"UPDATE users SET nickname='{new_nickname}', username='{username}' WHERE user_id = {user_id}")
         
     def set_user_state(self, user_id, user_state):
         self._execute(f"UPDATE users SET current_state={user_state.value} WHERE user_id = {user_id}")
         
     def get_user_state(self, user_id):
-        return UserStates(self._execute(f"SELECT current_state FROM users WHERE user_id = {user_id}")[0][0])
+        res = self._execute(f"SELECT current_state FROM users WHERE user_id = {user_id}")
+        return UserStates(res[0][0]) if len(res) > 0 else None
+    
+    def get_user_current_video(self, user_id):
+        res = self._execute(f"SELECT current_video FROM users WHERE user_id = {user_id}")
+        return res[0][0] if len(res) > 0 else None
+    
+    def set_user_current_video(self, user_id, video_path):
+        self._execute(f"UPDATE users SET current_video='{video_path}' WHERE user_id = {user_id}")
                 
             
 if __name__ == '__main__':
